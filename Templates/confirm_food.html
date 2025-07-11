@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Confirm Food</title>
+</head>
+<body>
+    <h2>Is this what you ate?</h2>
+<form action="{{ url_for('add') }}" method="POST" id="confirmForm">
+  {% for food in foods %}
+    <div style="margin-bottom: 12px;">
+      <input type="checkbox" name="selected" value="{{ loop.index0 }}" checked>
+      <strong>{{ food.food_name }}</strong> - <span id="calories_display_{{ loop.index0 }}">{{ food.nf_calories }}</span> cal<br>
+      <span style="font-size: 0.95em; color: #555;">Quantity: <span id="qty_display_{{ loop.index0 }}">{{ food.serving_qty }}</span> {{ food.serving_unit }}</span><br>
+      <label for="quantity_{{ loop.index0 }}">Adjust quantity:</label>
+      <input type="number" step="any" min="0.1" name="quantity_{{ loop.index0 }}" id="quantity_{{ loop.index0 }}" value="{{ food.serving_qty }}" style="width: 60px;" oninput="updateCalories('{{ loop.index0 }}', '{{ food.nf_calories }}', '{{ food.serving_qty }}')">
+      <span>{{ food.serving_unit }}</span>
+      <input type="hidden" name="food_{{ loop.index0 }}" value="{{ food.food_name }}">
+      <input type="hidden" name="calories_{{ loop.index0 }}" id="calories_input_{{ loop.index0 }}" value="{{ food.nf_calories }}">
+      <input type="hidden" name="unit_{{ loop.index0 }}" value="{{ food.serving_unit }}">
+    </div>
+  {% endfor %}
+  <input type="hidden" name="total" value="{{ foods | length }}">
+  <button type="submit">Add Selected to Log</button>
+</form>
+<script>
+function updateCalories(idx, baseCalories, baseQty) {
+  idx = parseInt(idx);
+  baseCalories = parseFloat(baseCalories);
+  baseQty = parseFloat(baseQty);
+  var qtyInput = document.getElementById('quantity_' + idx);
+  var qty = parseFloat(qtyInput.value);
+  if (!isNaN(qty) && baseQty > 0 && !isNaN(baseCalories)) {
+    var newCalories = Math.round(baseCalories * (qty / baseQty));
+    document.getElementById('calories_display_' + idx).textContent = newCalories;
+    document.getElementById('calories_input_' + idx).value = newCalories;
+    document.getElementById('qty_display_' + idx).textContent = qty;
+  }
+}
+</script>
+<a href="{{ url_for('index') }}">← Cancel</a>
+
+</body>
+</html>

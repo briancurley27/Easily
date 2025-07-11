@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Calorie History</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    h1 {
+      font-size: 2em;
+    }
+    .chart-container {
+      max-width: 600px;
+      height: 300px;
+      margin: 0 auto 30px;
+      position: relative;
+    }
+    .daily-totals {
+      margin-top: 30px;
+    }
+    .daily-totals ul {
+      list-style: none;
+      padding: 0;
+    }
+    .daily-totals li {
+      font-size: 1.1em;
+      margin-bottom: 5px;
+    }
+    a {
+      color: purple;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <h1>Calorie History</h1>
+  <div><a href="/">← Back to Today</a></div>
+
+  <div class="chart-container">
+    <canvas id="calorieChart"></canvas>
+  </div>
+
+  <div class="daily-totals">
+    <h2>Daily Totals</h2>
+    <ul>
+      {% for date, total in daily_totals %}
+        <li>
+          <a href="{{ url_for('view_day', date=date) }}">
+            <strong>{{ date[5:] }}</strong>
+          </a>: {{ total }} cal
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <!-- JSON blob hidden in the page -->
+<script id="chart-data" type="application/json">
+  {{ chart_data | tojson | safe }}
+</script>
+
+<!-- Chart.js script -->
+<script>
+  const chartData = JSON.parse(document.getElementById('chart-data').textContent);
+  const labels = Object.keys(chartData);
+  const data = Object.values(chartData);
+
+  const ctx = document.getElementById('calorieChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Calories per Day',
+        data: data,
+        backgroundColor: 'rgba(54, 162, 235, 0.5)'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  });
+</script>
+</body>
+</html>

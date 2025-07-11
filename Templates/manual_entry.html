@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Manual Entry</title>
+</head>
+<body>
+    <h1>Couldn't estimate calories for: <em>{{ original_input }}</em></h1>
+    <p>Please enter it manually:</p>
+    <form action="{{ url_for('add') }}" method="post">
+        <label for="food">Food:</label>
+        <input type="text" name="food" id="food" value="{{ original_input }}" required><br><br>
+        <label for="calories">Calories:</label>
+        <input type="number" name="calories" id="calories" required><br><br>
+        <button type="submit">Add to Log</button>
+    </form>
+    <br>
+    <a href="{{ url_for('index') }}">← Back to Today</a>
+</body>
+</html>

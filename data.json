@@ -1,0 +1,72 @@
+{
+  "2025-07-10": [
+    {
+      "food": "apple",
+      "calories": 40
+    },
+    {
+      "food": "Bananan",
+      "calories": 30
+    },
+    {
+      "food": "pancake ",
+      "calories": 300
+    }
+  ],
+  "2025-07-11": [
+    {
+      "food": "apple",
+      "calories": 95
+    },
+    {
+      "food": "bread",
+      "calories": 77
+    },
+    {
+      "food": "banana",
+      "calories": 105
+    },
+    {
+      "food": "pizza",
+      "calories": 285
+    },
+    {
+      "food": "peanuts",
+      "calories": 857.02
+    },
+    {
+      "food": "peanut butter",
+      "calories": 94.08
+    },
+    {
+      "food": "strawberries",
+      "calories": 29,
+      "quantity": 5.0,
+      "unit": "large"
+    },
+    {
+      "food": "cherries",
+      "calories": 30,
+      "quantity": 6.0,
+      "unit": "cherry"
+    },
+    {
+      "food": "soda",
+      "calories": 155,
+      "quantity": 1.0,
+      "unit": "can or bottle (12 fl oz)"
+    },
+    {
+      "food": "water",
+      "calories": 0,
+      "quantity": 5.0,
+      "unit": "serving 8 fl oz"
+    },
+    {
+      "food": "cashews",
+      "calories": 90,
+      "quantity": 10.0,
+      "unit": "cashew"
+    }
+  ]
+}

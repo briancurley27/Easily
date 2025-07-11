@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ date }} Log</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <h1>Log for {{ formatted_date }}</h1>
+    <a href="/history">← Back to History</a>
+
+    {% if entries %}
+        <ul>
+            {% for entry in entries %}
+                <li>{{ entry.food }} — {{ "%.0f"|format(entry.calories) }} cal</li>
+            {% endfor %}
+        </ul>
+        <h3>Total: {{ total }} cal</h3>
+    {% else %}
+        <p>No entries logged on this day.</p>
+    {% endif %}
+</body>
+</html>
+

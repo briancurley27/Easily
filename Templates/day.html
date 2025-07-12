@@ -7,18 +7,16 @@
   <ul style="list-style: none; padding: 0;">
     {% for entry in entries %}
        <li>
-                    {{ entry.food }}
-                    {% if entry.quantity and entry.unit %}
-                        ({{ entry.quantity }} {{ entry.unit }})
-                    {% elif entry.quantity %}
-                        ({{ entry.quantity }})
-                    {% endif %}
-                    — {{ "%.0f"|format(entry.calories) }} cal
-                </li>
-        <form method="get" action="{{ url_for('delete', date=entry.date, entry_id=entry.id) }}" style="display:inline;">
-          <button type="submit">Delete</button>
-        </form>
-      </li>
+  {{ entry.food }}
+  {% if entry.quantity %}
+    ({{ entry.quantity }})
+  {% endif %}
+  - {{ "%.0f"|format(entry.calories) }} cal
+
+  <form method="get" action="{{ url_for('delete', date=date, entry_id=entry.id) }}" style="display:inline;">
+    <button type="submit">Delete</button>
+  </form>
+</li>
     {% endfor %}
   </ul>
   <h3>Total: {{ total }} cal</h3>

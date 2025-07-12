@@ -1,23 +1,26 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>{{ date }} Log</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body>
-    <h1>Log for {{ formatted_date }}</h1>
-    <a href="/history">← Back to History</a>
+{% extends "base.html" %}
 
-    {% if entries %}
-        <ul>
-            {% for entry in entries %}
-                <li>{{ entry.food }} — {{ "%.0f"|format(entry.calories) }} cal</li>
-            {% endfor %}
-        </ul>
-        <h3>Total: {{ total }} cal</h3>
-    {% else %}
-        <p>No entries logged on this day.</p>
-    {% endif %}
-</body>
-</html>
+{% block title %}View Day{% endblock %}
 
+{% block content %}
+  <h1>{{ formatted_date }}</h1>
+  <ul style="list-style: none; padding: 0;">
+    {% for entry in entries %}
+       <li>
+                    {{ entry.food }}
+                    {% if entry.quantity and entry.unit %}
+                        ({{ entry.quantity }} {{ entry.unit }})
+                    {% elif entry.quantity %}
+                        ({{ entry.quantity }})
+                    {% endif %}
+                    — {{ "%.0f"|format(entry.calories) }} cal
+                </li>
+        <form method="get" action="{{ url_for('delete', date=entry.date, entry_id=entry.id) }}" style="display:inline;">
+          <button type="submit">Delete</button>
+        </form>
+      </li>
+    {% endfor %}
+  </ul>
+  <h3>Total: {{ total }} cal</h3>
+  <a href="/">Back to Today</a>
+{% endblock %}

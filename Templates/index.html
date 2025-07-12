@@ -1,37 +1,12 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <head>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      text-align: center;
-      margin: 0;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-    }
-    h1, h2 {
-      font-weight: 700;
-    }
-    a {
-      color: #5a00c4;
-      text-decoration: none;
-    }
-    a:hover {
-      text-decoration: underline;
-    }
-  </style>
-</head>
-<title>Calorie Tracker</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body>
+{% extends "base.html" %}
+
+{% block title %}Calorie Tracker{% endblock %}
+
+{% block content %}
   <div style="width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
     <h1>Calorie Tracker</h1>
     <h3>{{ formatted_today }}</h3>
+
     <form action="/" method="POST" style="display: flex; flex-direction: column; align-items: center; margin-bottom: 16px;">
       <textarea name="food" placeholder="Enter food" rows="3" style="width: 300px; font-size: 1.2em; margin-bottom: 8px; border: 1px solid #ccc; border-radius: 10px; padding: 8px; resize: none;"></textarea>
       <button type="submit">Estimate Calories</button>
@@ -40,21 +15,24 @@
     <h3>Today's Entries:</h3>
     <div style="display: flex; justify-content: center;">
       <ul style="list-style: none; padding: 0; text-align: left;">
-      {% for entry in entries %}
+        {% for entry in entries %}
           <li>
-              {{ entry.food }}
-              {% if entry.quantity and entry.unit %}
-                ({{ entry.quantity }} {{ entry.unit }})
-              {% endif %}
-              - {{ "%.0f"|format(entry.calories) }} cal
-              <form method="get" action="{{ url_for('delete', date=today, index=loop.index0) }}" style="display:inline;">
-                  <button type="submit">Delete</button>
-              </form>
-      {% endfor %}
+            {{ entry.food }}
+            {% if entry.quantity and entry.unit %}
+              ({{ entry.quantity }} {{ entry.unit }})
+               {% elif entry.quantity %}
+                ({{ entry.quantity }})
+            {% endif %}
+            - {{ "%.0f"|format(entry.calories) }} cal
+            <form method="get" action="{{ url_for('delete', date=today, entry_id=entry.id) }}" style="display:inline;">
+              <button type="submit">Delete</button>
+            </form>
+          </li>
+        {% endfor %}
       </ul>
     </div>
+
     <h3 style="margin-top: 24px;">Total Calories: {{ total }} cal</h3>
     <a href="{{ url_for('history') }}" style="margin-top: 8px;">View Calorie History</a>
   </div>
-</body>
-</html>
+{% endblock %}

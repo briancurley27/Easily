@@ -2,6 +2,6 @@ services:
   - type: web
     name: calorie-tracker
     env: python
-    buildCommand: ""
     startCommand: gunicorn app:app
-    
+    build:
+      pythonVersion: 3.11.8

@@ -4,8 +4,12 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import requests, os, re, uuid
 from openai import OpenAI
-from dotenv import load_dotenv
-load_dotenv()
+
+# Only load .env if not on Render
+if os.environ.get("RENDER") != "true":
+    from dotenv import load_dotenv
+    load_dotenv()
+
 from extensions import db, login_manager
 
 app = Flask(__name__, instance_relative_config=True, template_folder="Templates")

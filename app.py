@@ -1,53 +1,41 @@
-from flask import Flask, render_template, request, redirect, url_for
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, login_user, login_required, logout_user, current_user, UserMixin
+from flask import Flask, render_template, request, redirect, url_for, flash
+from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
-import requests
-import os
-import re
-import uuid
+import requests, os, re, uuid
 from openai import OpenAI
-
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-
-if not OPENAI_API_KEY:
-    raise ValueError("Missing OPENAI_API_KEY environment variable")
+from dotenv import load_dotenv
+load_dotenv()
+from extensions import db, login_manager
 
 app = Flask(__name__, instance_relative_config=True, template_folder="Templates")
 
+# ---------------- CONFIG ---------------- #
 app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY', 'your-secret-key')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-db = SQLAlchemy(app)
-
-login_manager = LoginManager()
+# ---------------- INITIALIZE EXTENSIONS ---------------- #
+db.init_app(app)
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
-# ---------------- MODELS ---------------- #
+# ---------------- IMPORT MODELS ---------------- #
+from models import User, FoodLog
 
-class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(150), unique=True, nullable=False)
-    password_hash = db.Column(db.String(150), nullable=False)
-
-class FoodLog(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    date = db.Column(db.String(10))
-    food = db.Column(db.String(100))
-    quantity = db.Column(db.String(50))
-    calories = db.Column(db.Integer)
-
+# ---------------- LOGIN MANAGER LOADER ---------------- #
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# ---------------- HELPERS ---------------- #
+# ---------------- OPENAI CLIENT ---------------- #
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+if not OPENAI_API_KEY:
+    raise ValueError("Missing OPENAI_API_KEY environment variable")
 
+client = OpenAI(api_key=OPENAI_API_KEY)
+
+# ---------------- HELPERS ---------------- #
 def get_today():
     return datetime.now().strftime('%Y-%m-%d')
 
@@ -102,6 +90,7 @@ def estimate_calories_with_chatgpt(food, quantity):
         print("ChatGPT calorie estimation error:", e)
     return None
 
+# ---------------- USDA HELPER ---------------- #
 USDA_API_KEY = os.environ.get("USDA_API_KEY")
 if not USDA_API_KEY:
     raise ValueError("Missing USDA_API_KEY environment variable")
@@ -225,8 +214,8 @@ def history():
         totals_by_date[entry.date] += entry.calories
     daily_totals_list = sorted(totals_by_date.items())
     daily_totals_dict = {
-        datetime.strptime(date, "%Y-%m-%d").strftime("%m/%d"): cal
-        for date, cal in daily_totals_list
+    date.strftime("%m/%d"): cal
+    for date, cal in daily_totals_list
     }
     return render_template("history.html", daily_totals=daily_totals_list, chart_data=daily_totals_dict)
 
@@ -256,13 +245,19 @@ def signup():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
+
         if User.query.filter_by(username=username).first():
-            return "Username already taken."
+            flash('Username already taken.', 'error')
+            return redirect(url_for('signup'))
+
         hashed_pw = generate_password_hash(password)
         new_user = User(username=username, password_hash=hashed_pw)
         db.session.add(new_user)
         db.session.commit()
-        return redirect(url_for('login'))
+
+        login_user(new_user)
+        return redirect(url_for('index'))
+
     return render_template("signup.html")
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -274,7 +269,10 @@ def login():
         if user and check_password_hash(user.password_hash, password):
             login_user(user)
             return redirect(url_for('index'))
-        return "Invalid credentials"
+        flash("Invalid credentials", "error")
+        return redirect(url_for('login'))
+    
+    # <- this part handles GET requests
     return render_template("login.html")
 
 @app.route('/logout')
@@ -283,6 +281,7 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
+# ---------------- RUN ---------------- #
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()

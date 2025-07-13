@@ -10,28 +10,31 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script>
-    const ctx = document.getElementById('calorieChart').getContext('2d');
-    const chart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: {{ chart_data.keys()|list|tojson }},
-        datasets: [{
-          label: 'Calories per Day',
-          data: {{ chart_data.values()|list|tojson }},
-          borderColor: '#5a00c4',
-          fill: false
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          y: { beginAtZero: true }
+ <script>
+  const ctx = document.getElementById('calorieChart').getContext('2d');
+  const chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: {{ chart_data.keys()|list|tojson|safe }},
+      datasets: [{
+        label: 'Calories per Day',
+        data: {{ chart_data.values()|list|tojson|safe }},
+        borderColor: '#5a00c4',
+        fill: false
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true
         }
       }
-    });
-  </script>
+    }
+  });
+</script>
+
 
   <ul style="list-style: none; padding: 0;">
     {% for date, total in daily_totals %}

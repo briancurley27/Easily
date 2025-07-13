@@ -218,9 +218,9 @@ def history():
         totals_by_date[entry.date] += entry.calories
     daily_totals_list = sorted(totals_by_date.items())
     daily_totals_dict = {
-    date.strftime("%m/%d"): cal
+    datetime.strptime(date, "%Y-%m-%d").strftime("%A, %B %d"): cal
     for date, cal in daily_totals_list
-    }
+}
     return render_template("history.html", daily_totals=daily_totals_list, chart_data=daily_totals_dict)
 
 @app.route('/day/<date>')

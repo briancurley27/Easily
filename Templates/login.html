@@ -1,20 +1,21 @@
 {% extends "base.html" %}
-
-{% block title %}Login{% endblock %}
-
 {% block content %}
-  <h2>Login</h2>
-  {% if error %}
-    <p style="color: red;">{{ error }}</p>
-  {% endif %}
-  <form method="post">
-    <div>
-      <input type="text" name="username" placeholder="Username" required>
-    </div>
-    <div>
-      <input type="password" name="password" placeholder="Password" required>
-    </div>
-    <button type="submit">Log In</button>
-  </form>
-  <p>Don't have an account? <a href="{{ url_for('signup') }}">Sign Up</a></p>
+  <div style="text-align: center; margin-top: 50px;">
+    <h2>Welcome</h2>
+    <p>Log in to get started.</p>
+
+    <form method="POST" action="{{ url_for('login') }}">
+      <div style="margin: 10px 0;">
+        <input type="text" name="username" placeholder="Username">
+      </div>
+      <div style="margin: 10px 0;">
+        <input type="password" name="password" placeholder="Password">
+      </div>
+      <div style="margin: 20px 0;">
+        <button type="submit">Log In</button>
+      </div>
+    </form>
+
+    <p>Don't have an account yet? <a href="{{ url_for('signup') }}">Sign up</a></p>
+  </div>
 {% endblock %}

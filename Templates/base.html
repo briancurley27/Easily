@@ -1,70 +1,178 @@
-<!-- templates/base.html -->
 <!DOCTYPE html>
 <html>
 <head>
   <title>{% block title %}Calorie Tracker{% endblock %}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Outfit:wght@600&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --primary: #5a00c4;  /* correct graph purple */
+      --accent: #ede3fc;   /* navbar background */
+    }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      text-align: center;
+      font-family: 'Poppins', sans-serif;
+      background-color: white;
+      color: #333;
       margin: 0;
       min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
     }
+
     h1, h2 {
-      font-weight: 700;
+      font-weight: 600;
+      margin-top: 0;
     }
+
     a {
-      color: #5a00c4;
+      color: var(--primary);
       text-decoration: none;
     }
+
     a:hover {
       text-decoration: underline;
     }
-    .top-right {
-      position: absolute;
-      top: 25px;
-      right: 30px;
-      text-align: right;
+
+    header.navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background-color: var(--accent);
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      z-index: 1000;
     }
-  /* Sexy custom scrollbar */
-  #chat-window::-webkit-scrollbar {
-    width: 6px;
-  }
 
-  #chat-window::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 0, 0, 0.2);
-    border-radius: 3px;
-  }
+    .brand a {
+      font-family: 'Outfit', sans-serif;
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--primary);
+      text-decoration: none;
+    }
 
-  #chat-window::-webkit-scrollbar-track {
-    background: transparent;
-  }
+    nav a {
+      background-color: var(--primary);
+      color: white;
+      padding: 6px 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      margin-left: 8px;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    nav a:hover {
+      opacity: 0.9;
+    }
+
+    nav .user-info {
+      font-weight: 500;
+      margin-left: 20px;
+      color: var(--primary);
+    }
+
+    main {
+      max-width: 800px;
+      margin: 100px auto 20px auto;
+      padding: 0 15px;
+      text-align: center;
+    }
+
+    h1.logo-heading {
+      font-family: 'Outfit', sans-serif;
+      font-size: 36px;
+      color: var(--primary);
+      margin-bottom: 20px;
+    }
+
+    button {
+      background-color: var(--primary);
+      border: none;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    .delete-btn {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      margin-left: 10px;
+      vertical-align: middle;
+    }
+
+    input, textarea {
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      padding: 8px;
+      font-size: 1em;
+    }
+
+    .flashes {
+      list-style: none;
+      padding: 0;
+      margin-top: 10px;
+    }
+
+    #chat-window::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    #chat-window::-webkit-scrollbar-thumb {
+      background-color: rgba(0, 0, 0, 0.2);
+      border-radius: 3px;
+    }
+
+    #chat-window::-webkit-scrollbar-track {
+      background: transparent;
+    }
   </style>
 </head>
 <body>
-  <div class="top-right">
-    {% if current_user.is_authenticated %}
-      <p style="margin: 0;">Hi, {{ current_user.username }}!</p>
-      <a href="{{ url_for('logout') }}">Logout</a>
-    {% else %}
-      <a href="{{ url_for('login') }}">Login</a>
-    {% endif %}
-  </div>
+  <header class="navbar">
+    <div class="brand">
+      <a href="{{ url_for('index') }}">Calorie Tracker</a>
+    </div>
+    <nav>
+      <a href="{{ url_for('index') }}">Home</a>
+      <a href="{{ url_for('history') }}">History</a>
+      <a href="{{ url_for('chat') }}">AI Estimator</a>
+      {% if current_user.is_authenticated %}
+        <span class="user-info">|&nbsp; Hi, {{ current_user.username }}!</span>
+        <a href="{{ url_for('logout') }}">Logout</a>
+      {% else %}
+        <a href="{{ url_for('login') }}">Login</a>
+      {% endif %}
+    </nav>
+  </header>
 
-  {% block content %}{% endblock %}
-  {% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-    <ul class="flashes">
-      {% for category, message in messages %}
-        <li class="{{ category }}">{{ message }}</li>
-      {% endfor %}
-    </ul>
-  {% endif %}
-{% endwith %}
+  <main>
+    <h1 class="logo-heading">Calorie Tracker</h1>
+    {% block content %}{% endblock %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <ul class="flashes">
+        {% for category, message in messages %}
+          <li class="{{ category }}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+    {% endwith %}
+  </main>
 </body>
 </html>

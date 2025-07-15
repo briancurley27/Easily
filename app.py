@@ -20,6 +20,10 @@ app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY', 'your-secret-key')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SESSION_TYPE'] = 'filesystem'
+# Flask-Session 0.4 expects the deprecated `session_cookie_name` attribute which
+# was removed in Flask 3. Without setting it manually, session initialization
+# fails on newer Flask versions. Provide it here for backward compatibility.
+app.session_cookie_name = app.config.get('SESSION_COOKIE_NAME', 'session')
 Session(app)
 
 # ---------------- INITIALIZE EXTENSIONS ---------------- #

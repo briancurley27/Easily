@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>{% block title %}Calorie Tracker{% endblock %}</title>
+  <title>{% block title %}Easily{% endblock %}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Outfit:wght@600&display=swap" rel="stylesheet">
   <style>
@@ -146,7 +146,7 @@
 <body>
   <header class="navbar">
     <div class="brand">
-      <a href="{{ url_for('index') }}">Calorie Tracker</a>
+      <a href="{{ url_for('index') }}">Easily</a>
     </div>
     <nav>
       <a href="{{ url_for('index') }}">Home</a>
@@ -161,7 +161,7 @@
   </header>
 
   <main>
-    <h1 class="logo-heading">Calorie Tracker</h1>
+    <h1 class="logo-heading">Easily</h1>
     {% block content %}{% endblock %}
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}

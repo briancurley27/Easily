@@ -151,7 +151,6 @@
     <nav>
       <a href="{{ url_for('index') }}">Home</a>
       <a href="{{ url_for('history') }}">History</a>
-      <a href="{{ url_for('chat') }}">AI Estimator</a>
       {% if current_user.is_authenticated %}
         <span class="user-info">|&nbsp; Hi, {{ current_user.username }}!</span>
         <a href="{{ url_for('logout') }}">Logout</a>

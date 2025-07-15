@@ -78,47 +78,53 @@ def index():
     except:
         formatted_today = today
 
-    return render_template("index.html", entries=today_entries, total=total_calories, today=today, formatted_today=formatted_today)
-
-@app.route('/chat', methods=['GET', 'POST'])
-@login_required
-def chat():
+    # ----------- ChatGPT Estimator Logic -----------
     if 'messages' not in session:
         session['messages'] = [
-            {"role": "system", "content": "You are a helpful calorie tracking assistant. When the user describes a meal, estimate the calories. Return the estimate as a breakdown in plain English, and if appropriate, provide a JSON list with food name, quantity, and calories."}
+            {
+                "role": "system",
+                "content": (
+                    "You are a helpful calorie tracking assistant. When the user describes a meal, "
+                    "estimate the calories. Return the estimate as a breakdown in plain English, "
+                    "and if appropriate, provide a JSON list with food name, quantity, and calories. "
+                    "Include zero-calorie foods like water or lettuce if mentioned."
+                )
+            }
         ]
 
-    user_input = None
-    gpt_reply = None
+    user_input = request.form.get("user_input", "").strip() if request.method == 'POST' else None
     parsed_foods = []
 
-    if request.method == 'POST':
-        user_input = request.form.get("user_input", "").strip()
-        if user_input:
-            session['messages'].append({"role": "user", "content": user_input})
+    if user_input:
+        session['messages'].append({"role": "user", "content": user_input})
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4",
+                messages=session['messages'],
+                temperature=0
+            )
+            gpt_reply = response.choices[0].message.content
+            session['messages'].append({"role": "assistant", "content": gpt_reply})
 
-            try:
-                response = client.chat.completions.create(
-                    model="gpt-4",
-                    messages=session['messages'],
-                    temperature=0
-                )
-                gpt_reply = response.choices[0].message.content
-                session['messages'].append({"role": "assistant", "content": gpt_reply})
+            # Extract JSON array using regex (e.g., [{"food": ..., "calories": ...}])
+            match = re.search(r"\[\s*{.*?}\s*\]", gpt_reply, re.DOTALL)
+            if match:
+                food_json = match.group(0)
+                parsed_foods = json.loads(food_json)  # do NOT skip 0-calorie items
+        except Exception as e:
+            print("JSON parse error:", e)
+            print("GPT reply was:", gpt_reply)
+            session['messages'].append({"role": "assistant", "content": "Sorry, there was a problem generating a response."})
 
-                try:
-                    start = gpt_reply.index("[")
-                    end = gpt_reply.rindex("]") + 1
-                    food_json = gpt_reply[start:end]
-                    parsed_foods = json.loads(food_json)
-                except:
-                    parsed_foods = []
-
-            except Exception as e:
-                gpt_reply = "Sorry, there was a problem generating a response."
-                session['messages'].append({"role": "assistant", "content": gpt_reply})
-
-    return render_template("chat.html", messages=session['messages'], parsed_foods=parsed_foods)
+    return render_template(
+        "index.html",
+        entries=today_entries,
+        total=total_calories,
+        today=today,
+        formatted_today=formatted_today,
+        messages=session['messages'],
+        parsed_foods=parsed_foods
+    )
 
 @app.route('/add', methods=['POST'])
 @login_required

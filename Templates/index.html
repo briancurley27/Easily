@@ -3,51 +3,167 @@
 {% block title %}Calorie Tracker{% endblock %}
 
 {% block content %}
-  <div style="width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-   
-    <h3>{{ formatted_today }}</h3>
+<div style="width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+  <h3 style="margin-bottom: 5px;">{{ formatted_today }}</h3>
+  <h4 style="margin-top: 0; margin-bottom: 16px;">Welcome to your personal calorie tracker! What did you eat today?</h4>
 
-    <p>Welcome to your personal calorie tracker! Here you can log your food intake and track your daily calories.</p>
+  <div style="max-width: 800px; width: 100%; margin: 0 auto 20px auto;">
 
-    {% if error %}
-      <p style="color: red;">{{ error }}</p>
-    {% endif %}
-    {% if success %}
-      <p style="color: green;">{{ success }}</p>
-    {% endif %}
-    {% if not entries %}
-      <p>No entries for today yet. Start logging your food!</p>
-    {% endif %} 
-    <form action="/" method="POST" style="display: flex; flex-direction: column; align-items: center; margin-bottom: 16px;">
-      <textarea name="food" placeholder="Enter food" rows="3" style="width: 300px; font-size: 1.2em; margin-bottom: 8px; border: 1px solid #ccc; border-radius: 10px; padding: 8px; resize: none;"></textarea>
-      <button type="submit">Estimate Calories</button>
-    </form>
+    <!-- Chatbox container with border -->
+    <div style="border: 1px solid #ccc; border-radius: 8px; padding: 12px; background: #f9f9f9;">
 
-    <h3>Today's Entries:</h3>
-    <div style="display: flex; justify-content: center;">
-      <ul style="list-style: none; padding: 0; text-align: left;">
-        {% for entry in entries %}
-          <li>
-            {{ entry.food }}
-            {% if entry.quantity and entry.unit %}
-              ({{ entry.quantity }} {{ entry.unit }})
-            {% elif entry.quantity %}
-              ({{ entry.quantity }})
+      <!-- Chat window -->
+      <div id="chat-window" style="
+        padding: 10px;
+        border-radius: 8px;
+        height: 300px;
+        overflow-y: auto;
+        scroll-behavior: smooth;
+        font-size: 0.95em;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      ">
+        {% for msg in messages %}
+          {% if msg.role == 'user' %}
+            <div style="align-self: flex-end; background: var(--primary); color: white; padding: 10px 12px; border-radius: 10px; max-width: 80%;">
+              {{ msg.content }}
+            </div>
+          {% elif msg.role == 'assistant' %}
+            {% set content = msg.content %}
+            {% set stripped = content
+              |replace("```json", "")
+              |replace("```", "")
+              |replace("Here’s the JSON list:", "")
+              |replace("Here's the JSON list:", "") %}
+
+            {% if '[' in stripped and ']' in stripped %}
+              {% set start = stripped.find('[') %}
+              {% set end = stripped.rfind(']') + 1 %}
+              {% set before = stripped[:start].strip() %}
+              {% set after = stripped[end:].strip() %}
+              <div style="align-self: flex-start; background: white; padding: 10px 12px; border-radius: 10px; max-width: 80%; border: 1px solid #ddd;">
+                <div style="white-space: pre-wrap;">{{ before }}{% if after %}<br><br>{{ after }}{% endif %}</div>
+              </div>
+            {% else %}
+              <div style="align-self: flex-start; background: white; padding: 10px 12px; border-radius: 10px; max-width: 80%; border: 1px solid #ddd;">
+                <div style="white-space: pre-wrap;">{{ stripped }}</div>
+              </div>
             {% endif %}
-            - {{ "%.0f"|format(entry.calories) }} cal
-            <form method="get" action="{{ url_for('delete', date=today, entry_id=entry.id) }}" style="display:inline;">
-              <button class="delete-btn">×</button>
-            </form>
-          </li>
+          {% endif %}
         {% endfor %}
-      </ul>
+      </div>
+
+      <!-- Thinking animation -->
+      <div id="thinking" style="display: none; margin-top: 10px; font-style: italic; color: var(--primary); text-align: left;">
+        Thinking<span id="dots">.</span>
+      </div>
+
+      <!-- Input + Send button (styled together) -->
+      <form method="post" style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
+        <div style="display: flex; align-items: stretch;">
+          <textarea name="user_input" rows="2" placeholder="Describe your meal or ask a follow-up..." style="
+            flex: 1;
+            font-size: 1em;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px 0 0 8px;
+            resize: none;
+            outline: none;
+          "></textarea>
+          <button type="submit" style="
+            padding: 10px 16px;
+            font-size: 1em;
+            border: 1px solid #ccc;
+            border-left: none;
+            background-color: var(--primary);
+            color: white;
+            border-radius: 0 8px 8px 0;
+            cursor: pointer;
+          ">Send</button>
+        </div>
+      </form>
     </div>
 
-    <a href="{{ url_for('chat') }}">
-      <button type="button">Try AI Meal Estimator</button>
-    </a>
-
-    <h3 style="margin-top: 24px;">Total Calories: {{ total }} cal</h3>
-    <a href="{{ url_for('history') }}" style="margin-top: 8px;">View Calorie History</a>
+    <!-- Foods Detected -->
+    {% if parsed_foods %}
+      <div style="margin-top: 20px;">
+        <h4 style="text-align: center;">Foods Detected:</h4>
+        <form method="post" action="{{ url_for('add') }}" style="text-align: center;">
+          <ul style="list-style-type: none; padding-left: 0;">
+            {% for food in parsed_foods %}
+              {% set idx = loop.index0 %}
+              <li style="margin-bottom: 10px;">
+                <input type="checkbox" name="selected" value="{{ idx }}" checked>
+                {{ food.quantity|format_entry(food.food) }} – {{ food.calories }} cal
+                <input type="hidden" name="food_{{ idx }}" value="{{ food.food }}">
+                <input type="hidden" name="quantity_{{ idx }}" value="{{ food.quantity }}">
+                <input type="hidden" name="calories_{{ idx }}" value="{{ food.calories }}">
+              </li>
+            {% endfor %}
+          </ul>
+          <button type="submit" class="primary-button" style="margin-top: 5px;">Add to Log</button>
+        </form>
+      </div>
+    {% endif %}
   </div>
+
+  <!-- Daily Entries -->
+  <h3 style="margin-top: 32px;">Today's Entries:</h3>
+  <div style="display: flex; justify-content: center;">
+    <ul style="list-style: none; padding: 0; text-align: left;">
+      {% for entry in entries %}
+        <li>
+          {{ entry.food }}
+          {% if entry.quantity and entry.unit %}
+            ({{ entry.quantity }} {{ entry.unit }})
+          {% elif entry.quantity %}
+            ({{ entry.quantity }})
+          {% endif %}
+          - {{ "%.0f"|format(entry.calories) }} cal
+          <form method="get" action="{{ url_for('delete', date=today, entry_id=entry.id) }}" style="display:inline;">
+            <button class="delete-btn">×</button>
+          </form>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <h3 style="margin-top: 24px;">Total Calories: {{ total }} cal</h3>
+  <a href="{{ url_for('history') }}" style="margin-top: 8px;">View Calorie History</a>
+</div>
+
+<!-- Auto scroll + thinking animation -->
+<script>
+  window.onload = function () {
+    const chatWindow = document.getElementById("chat-window");
+    if (chatWindow) {
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+  };
+
+  const form = document.querySelector('form[method="post"]');
+  const thinking = document.getElementById("thinking");
+  const dots = document.getElementById("dots");
+  const chatWindow = document.getElementById("chat-window");
+
+  if (form && thinking) {
+    form.addEventListener("submit", () => {
+      thinking.style.display = "block";
+      let count = 0;
+      const interval = setInterval(() => {
+        count = (count + 1) % 4;
+        dots.textContent = '.'.repeat(count);
+      }, 500);
+      const observer = new MutationObserver(() => {
+        if (chatWindow && chatWindow.scrollHeight > 0) {
+          thinking.style.display = "none";
+          clearInterval(interval);
+          observer.disconnect();
+        }
+      });
+      observer.observe(chatWindow, { childList: true, subtree: true });
+    });
+  }
+</script>
 {% endblock %}

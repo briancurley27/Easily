@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h2>AI Calorie Estimator</h2>
+
+  <div style="max-width: 600px; margin: 0 auto;">
+    <!-- Scrollable conversation window -->
+    <div id="chat-window" style="
+      background: #f9f9f9;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      height: 300px;
+      overflow-y: auto;
+      scroll-behavior: smooth;
+    ">
+      {% for msg in messages %}
+        {% if msg.role == 'user' %}
+          <div style="margin-bottom: 10px;">
+            <strong>You:</strong> {{ msg.content }}
+          </div>
+        {% elif msg.role == 'assistant' %}
+          <div style="margin-bottom: 10px;">
+            <strong>ChatGPT:</strong><br>
+            <pre style="white-space: pre-wrap; margin: 0;">{{ msg.content }}</pre>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    <!-- Chat input form -->
+    <form method="post">
+      <textarea name="user_input" rows="3" style="width: 100%;" placeholder="Describe your meal or ask a follow-up..."></textarea>
+      <button type="submit" style="margin-top: 10px;">Send</button>
+    </form>
+
+    <!-- Parsed food entries -->
+    {% if parsed_foods %}
+      <hr>
+      <h3>Foods Detected</h3>
+      <form method="post" action="{{ url_for('add') }}">
+        <ul style="list-style-type: none; padding-left: 0;">
+          {% for food in parsed_foods %}
+            {% set idx = loop.index0 %}
+            <li style="margin-bottom: 10px;">
+              <input type="checkbox" name="selected" value="{{ idx }}" checked>
+              <label>
+                {{ food.quantity|format_entry(food.food) }} – {{ food.calories }} cal
+              </label>
+              <input type="hidden" name="food_{{ idx }}" value="{{ food.food }}">
+              <input type="hidden" name="quantity_{{ idx }}" value="{{ food.quantity }}">
+              <input type="hidden" name="calories_{{ idx }}" value="{{ food.calories }}">
+            </li>
+          {% endfor %}
+        </ul>
+        <button type="submit">Add to Log</button>
+      </form>
+    {% endif %}
+
+    <!-- Cancel button -->
+    <form method="get" action="{{ url_for('index') }}" style="margin-top: 10px;">
+      <button type="submit">Cancel</button>
+    </form>
+  </div>
+
+  <!-- Auto-scroll to bottom on load -->
+  <script>
+    window.onload = function () {
+      const chatWindow = document.getElementById("chat-window");
+      if (chatWindow) {
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+      }
+    };
+  </script>
+{% endblock %}

@@ -5,18 +5,19 @@
 
   {% if foods %}
     <form action="{{ url_for('add') }}" method="post">
-      {% for idx, food in enumerate(foods) %}
-  <div style="margin-bottom: 10px;">
-    <input type="checkbox" name="selected" value="{{ idx }}" checked>
-    <label>
-      <li>{{ food.quantity }} of {{ food.food }} - {{ food.calories }} cal</li>
-      <small>({{ food.source }})</small>
-    </label>
-    <input type="hidden" name="food_{{ idx }}" value="{{ food.food }}">
-    <input type="hidden" name="calories_{{ idx }}" value="{{ food.calories }}">
-    <input type="hidden" name="quantity_{{ idx }}" value="{{ food.quantity }}">
-  </div>
-{% endfor %}
+      <ul style="list-style-type: none; padding-left: 0;">
+        {% for idx, food in enumerate(foods) %}
+          <li style="margin-bottom: 10px;">
+            <input type="checkbox" name="selected" value="{{ idx }}" checked>
+            <label>
+              {{ food.assumed_quantity|format_entry(food.food) }} – {{ food.calories }} cal
+            </label>
+            <input type="hidden" name="food_{{ idx }}" value="{{ food.food }}">
+            <input type="hidden" name="calories_{{ idx }}" value="{{ food.calories }}">
+            <input type="hidden" name="quantity_{{ idx }}" value="{{ food.assumed_quantity }}">
+          </li>
+        {% endfor %}
+      </ul>
       <button type="submit">Add to Log</button>
     </form>
   {% else %}

@@ -43,6 +43,10 @@
       </ul>
     </div>
 
+    <a href="{{ url_for('chat') }}">
+      <button type="button">Try AI Meal Estimator</button>
+    </a>
+
     <h3 style="margin-top: 24px;">Total Calories: {{ total }} cal</h3>
     <a href="{{ url_for('history') }}" style="margin-top: 8px;">View Calorie History</a>
   </div>

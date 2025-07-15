@@ -1,8 +1,9 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_session import Session
 from datetime import datetime
-import requests, os, re, uuid
+import sqlite3, os, re, uuid, json
 from openai import OpenAI
 
 # Only load .env if not on Render
@@ -18,6 +19,8 @@ app = Flask(__name__, instance_relative_config=True, template_folder="Templates"
 app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY', 'your-secret-key')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SESSION_TYPE'] = 'filesystem'
+Session(app)
 
 # ---------------- INITIALIZE EXTENSIONS ---------------- #
 db.init_app(app)
@@ -43,8 +46,17 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 def get_today():
     return datetime.now().strftime('%Y-%m-%d')
 
-def get_formatted_date(date_str):
-    return datetime.strptime(date_str, '%Y-%m-%d').strftime('%m/%d')
+@app.template_filter('format_entry')
+def format_entry(quantity, food):
+    q = quantity.lower().strip()
+    f = food.lower().strip()
+    if q in f:
+        return f
+    skip_of_units = {"slice", "slices", "medium", "small", "large", "cup", "cups", "piece", "pieces"}
+    first_word = q.split()[0]
+    if first_word in skip_of_units:
+        return f"{q} {f}"
+    return f"{q} of {f}"
 
 @app.template_filter('datetimeformat')
 def datetimeformat(value, format='%A, %B %d'):
@@ -53,122 +65,60 @@ def datetimeformat(value, format='%A, %B %d'):
     except Exception:
         return value
 
-def parse_foods_with_chatgpt(user_input):
-    prompt = f"""
-Extract all the foods and portion sizes from this sentence and return them as JSON.
-Input: "{user_input}"
-Output format:
-[
-  {{
-    "food": "food name",
-    "quantity": "amount (e.g., 1 slice, 2 cups, handful)"
-  }}
-]
-"""
-    try:
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0
-        )
-        content = response.choices[0].message.content
-        print("ChatGPT raw output:", content)
-        return eval(content)
-    except Exception as e:
-        print("ChatGPT parsing error:", e)
-        return []
-
-def estimate_calories_with_chatgpt(food, quantity):
-    prompt = f"Roughly estimate the calories in {quantity} of {food}. Return just a number."
-    try:
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0
-        )
-        content = response.choices[0].message.content.strip()
-        match = re.search(r"\d+(\.\d+)?", content)
-        if match:
-            return int(float(match.group()))
-    except Exception as e:
-        print("ChatGPT calorie estimation error:", e)
-    return None
-
-# ---------------- USDA HELPER ---------------- #
-USDA_API_KEY = os.environ.get("USDA_API_KEY")
-if not USDA_API_KEY:
-    raise ValueError("Missing USDA_API_KEY environment variable")
-
-def search_usda_food(food_name):
-    USDA_SEARCH_URL = "https://api.nal.usda.gov/fdc/v1/foods/search"
-    USDA_FOOD_URL = "https://api.nal.usda.gov/fdc/v1/food/{}"
-    params = {
-        "api_key": USDA_API_KEY,
-        "query": food_name,
-        "pageSize": 1,
-        "dataType": ["Foundation", "SR Legacy"]
-    }
-    try:
-        search_response = requests.get(USDA_SEARCH_URL, params=params).json()
-        if not search_response.get("foods"):
-            return None
-        food = search_response["foods"][0]
-        fdc_id = food["fdcId"]
-        detail_response = requests.get(USDA_FOOD_URL.format(fdc_id), params={"api_key": USDA_API_KEY}).json()
-        for nutrient in detail_response.get("foodNutrients", []):
-            if nutrient.get("nutrientName") == "Energy":
-                return {
-                    "description": food["description"],
-                    "calories_per_100g": nutrient.get("value", None),
-                    "fdcId": fdc_id
-                }
-    except Exception as e:
-        print("USDA lookup error:", e)
-    return None
-
 # ---------------- ROUTES ---------------- #
-
 @app.route('/', methods=['GET', 'POST'])
 @login_required
 def index():
     today = get_today()
     today_entries = FoodLog.query.filter_by(user_id=current_user.id, date=today).all()
+    total_calories = sum(entry.calories for entry in today_entries)
+
     try:
-        today_obj = datetime.strptime(today, '%Y-%m-%d')
-        formatted_today = today_obj.strftime('%A, %B %d')
-    except Exception:
+        formatted_today = datetime.strptime(today, '%Y-%m-%d').strftime('%A, %B %d')
+    except:
         formatted_today = today
 
-    error = None
+    return render_template("index.html", entries=today_entries, total=total_calories, today=today, formatted_today=formatted_today)
+
+@app.route('/chat', methods=['GET', 'POST'])
+@login_required
+def chat():
+    if 'messages' not in session:
+        session['messages'] = [
+            {"role": "system", "content": "You are a helpful calorie tracking assistant. When the user describes a meal, estimate the calories. Return the estimate as a breakdown in plain English, and if appropriate, provide a JSON list with food name, quantity, and calories."}
+        ]
+
+    user_input = None
+    gpt_reply = None
+    parsed_foods = []
 
     if request.method == 'POST':
-        try:
-            food_input = request.form['food']
-            parsed_foods = parse_foods_with_chatgpt(food_input)
-            results = []
-            for i, item in enumerate(parsed_foods):
-                food = item.get("food", "")
-                quantity = item.get("quantity", "")
-                usda = search_usda_food(food)
-                if usda:
-                    calories = usda.get("calories_per_100g")
-                    source = "USDA"
-                else:
-                    calories = estimate_calories_with_chatgpt(food, quantity)
-                    source = "ChatGPT"
-                results.append({
-                    "food": food,
-                    "quantity": quantity,
-                    "calories": round(calories) if calories is not None else "N/A",
-                    "source": source
-                })
-            return render_template("confirm_food.html", foods=results, enumerate=enumerate)
-        except Exception as e:
-            print("Error estimating calories:", e)
-            error = "There was an error estimating calories. Please try again."
+        user_input = request.form.get("user_input", "").strip()
+        if user_input:
+            session['messages'].append({"role": "user", "content": user_input})
 
-    total_calories = sum(entry.calories for entry in today_entries)
-    return render_template("index.html", entries=today_entries, total=total_calories, today=today, formatted_today=formatted_today, error=error)
+            try:
+                response = client.chat.completions.create(
+                    model="gpt-4",
+                    messages=session['messages'],
+                    temperature=0
+                )
+                gpt_reply = response.choices[0].message.content
+                session['messages'].append({"role": "assistant", "content": gpt_reply})
+
+                try:
+                    start = gpt_reply.index("[")
+                    end = gpt_reply.rindex("]") + 1
+                    food_json = gpt_reply[start:end]
+                    parsed_foods = json.loads(food_json)
+                except:
+                    parsed_foods = []
+
+            except Exception as e:
+                gpt_reply = "Sorry, there was a problem generating a response."
+                session['messages'].append({"role": "assistant", "content": gpt_reply})
+
+    return render_template("chat.html", messages=session['messages'], parsed_foods=parsed_foods)
 
 @app.route('/add', methods=['POST'])
 @login_required
@@ -177,32 +127,28 @@ def add():
     selected = request.form.getlist('selected')
     entries_to_add = []
 
-    if selected:
-        for idx in selected:
-            food = request.form.get(f'food_{idx}', '').strip()
-            quantity = request.form.get(f'quantity_{idx}', '').strip()
-            calories_raw = request.form.get(f'calories_{idx}', '')
-            try:
-                calories = round(float(calories_raw))
-                entries_to_add.append({
-                    "food": food,
-                    "quantity": quantity,
-                    "calories": calories
-                })
-            except:
-                continue
-    else:
-        food = request.form.get('food', '').strip()
-        quantity = request.form.get('quantity', '').strip()
-        calories_raw = request.form.get('calories', '')
+    for idx in selected:
+        food = request.form.get(f'food_{idx}', '').strip()
+        quantity = request.form.get(f'quantity_{idx}', '').strip()
+        calories_raw = request.form.get(f'calories_{idx}', '')
         try:
             calories = round(float(calories_raw))
-            entries_to_add.append({"food": food, "quantity": quantity, "calories": calories})
+            entries_to_add.append({
+                "food": food,
+                "quantity": quantity,
+                "calories": calories
+            })
         except:
-            pass
+            continue
 
     for entry in entries_to_add:
-        new_entry = FoodLog(user_id=current_user.id, date=today, food=entry["food"], quantity=entry.get("quantity", ""), calories=entry["calories"])
+        new_entry = FoodLog(
+            user_id=current_user.id,
+            date=today,
+            food=entry["food"],
+            quantity=entry.get("quantity", ""),
+            calories=entry["calories"]
+        )
         db.session.add(new_entry)
     db.session.commit()
     return redirect(url_for('index'))
@@ -213,15 +159,15 @@ def history():
     entries = FoodLog.query.filter_by(user_id=current_user.id).all()
     totals_by_date = {}
     for entry in entries:
-        if entry.date not in totals_by_date:
-            totals_by_date[entry.date] = 0
+        totals_by_date.setdefault(entry.date, 0)
         totals_by_date[entry.date] += entry.calories
+
     daily_totals_list = sorted(totals_by_date.items())
-    daily_totals_dict = {
-    datetime.strptime(date, "%Y-%m-%d").strftime("%A, %B %d"): cal
-    for date, cal in daily_totals_list
-}
-    return render_template("history.html", daily_totals=daily_totals_list, chart_data=daily_totals_dict)
+    chart_data = {
+        datetime.strptime(date, "%Y-%m-%d").strftime("%A, %B %d"): cal
+        for date, cal in daily_totals_list
+    }
+    return render_template("history.html", daily_totals=daily_totals_list, chart_data=chart_data)
 
 @app.route('/day/<date>')
 @login_required
@@ -229,8 +175,7 @@ def view_day(date):
     entries = FoodLog.query.filter_by(user_id=current_user.id, date=date).all()
     total = sum(entry.calories for entry in entries)
     try:
-        date_obj = datetime.strptime(date, '%Y-%m-%d')
-        formatted_date = date_obj.strftime('%A %B %d, %Y')
+        formatted_date = datetime.strptime(date, '%Y-%m-%d').strftime('%A %B %d, %Y')
     except:
         formatted_date = date
     return render_template("day.html", entries=entries, total=total, formatted_date=formatted_date)
@@ -275,8 +220,7 @@ def login():
             return redirect(url_for('index'))
         flash("Invalid credentials", "error")
         return redirect(url_for('login'))
-    
-    # <- this part handles GET requests
+
     return render_template("login.html")
 
 @app.route('/logout')

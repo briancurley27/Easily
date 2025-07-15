@@ -51,9 +51,26 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 def get_today():
     return datetime.now().strftime('%Y-%m-%d')
 
+def normalize_calories(value):
+    """Return a numeric calorie estimate from numbers or ranges."""
+    if isinstance(value, (int, float)):
+        return float(value)
+    if isinstance(value, str):
+        value = value.strip()
+        match = re.match(r"^(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)$", value)
+        if match:
+            low = float(match.group(1))
+            high = float(match.group(2))
+            return (low + high) / 2
+        try:
+            return float(value)
+        except ValueError:
+            return 0.0
+    return 0.0
+
 @app.template_filter('format_entry')
 def format_entry(quantity, food):
-    q = quantity.lower().strip()
+    q = str(quantity).lower().strip()
     f = food.lower().strip()
     if q in f:
         return f
@@ -93,6 +110,7 @@ def index():
                     "estimate the calories. Return the estimate as a breakdown in plain English, "
                     "and if appropriate, provide a JSON list with food name, quantity, and calories. "
                     "Include zero-calorie foods like water or lettuce if mentioned."
+                    "Return calories as a single numeric value—no ranges or textual estimates—in the JSON list."
                 )
             }
         ]
@@ -238,6 +256,7 @@ def login():
 @login_required
 def logout():
     logout_user()
+    session.pop('messages', None)
     return redirect(url_for('login'))
 
 # ---------------- RUN ---------------- #

@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_session import Session
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 import sqlite3, os, re, uuid, json
 from openai import OpenAI
@@ -100,14 +100,23 @@ def datetimeformat(value, format='%A, %B %d'):
 @app.route('/', methods=['GET', 'POST'])
 @login_required
 def index():
-    today = get_today()
-    today_entries = FoodLog.query.filter_by(user_id=current_user.id, date=today).all()
-    total_calories = sum(entry.calories for entry in today_entries)
+    date = request.values.get('date', get_today())
+    entries_for_day = FoodLog.query.filter_by(user_id=current_user.id, date=date).all()
+    total_calories = sum(entry.calories for entry in entries_for_day)
 
     try:
-        formatted_today = datetime.strptime(today, '%Y-%m-%d').strftime('%A, %B %d')
-    except:
-        formatted_today = today
+        formatted_today = datetime.strptime(date, '%Y-%m-%d').strftime('%A, %B %d')
+    except Exception:
+        formatted_today = date
+
+    # determine previous and next dates for navigation
+    try:
+        curr_dt = datetime.strptime(date, '%Y-%m-%d')
+        prev_date = (curr_dt - timedelta(days=1)).strftime('%Y-%m-%d')
+        next_date = (curr_dt + timedelta(days=1)).strftime('%Y-%m-%d')
+    except Exception:
+        prev_date = next_date = date
+    is_today = (date == get_today())
 
     # ----------- ChatGPT Estimator Logic -----------
     if 'messages' not in session:
@@ -150,18 +159,21 @@ def index():
 
     return render_template(
         "index.html",
-        entries=today_entries,
+        entries=entries_for_day,
         total=total_calories,
-        today=today,
+        today=date,
         formatted_today=formatted_today,
         messages=session['messages'],
-        parsed_foods=parsed_foods
+        parsed_foods=parsed_foods,
+        prev_date=prev_date,
+        next_date=next_date,
+        is_today=is_today
     )
 
 @app.route('/add', methods=['POST'])
 @login_required
 def add():
-    today = get_today()
+    date = request.form.get('date', get_today())
     selected = request.form.getlist('selected')
     entries_to_add = []
 
@@ -182,14 +194,14 @@ def add():
     for entry in entries_to_add:
         new_entry = FoodLog(
             user_id=current_user.id,
-            date=today,
+            date=date,
             food=entry["food"],
             quantity=entry.get("quantity", ""),
             calories=entry["calories"]
         )
         db.session.add(new_entry)
     db.session.commit()
-    return redirect(url_for('index'))
+    return redirect(url_for('index', date=date))
 
 @app.route('/history')
 @login_required
@@ -210,13 +222,8 @@ def history():
 @app.route('/day/<date>')
 @login_required
 def view_day(date):
-    entries = FoodLog.query.filter_by(user_id=current_user.id, date=date).all()
-    total = sum(entry.calories for entry in entries)
-    try:
-        formatted_date = datetime.strptime(date, '%Y-%m-%d').strftime('%A %B %d, %Y')
-    except:
-        formatted_date = date
-    return render_template("day.html", entries=entries, total=total, formatted_date=formatted_date)
+     # maintain backward compatibility with old view route
+    return redirect(url_for('index', date=date))
 
 @app.route("/delete/<date>/<int:entry_id>")
 @login_required
@@ -225,7 +232,7 @@ def delete(date, entry_id):
     if entry:
         db.session.delete(entry)
         db.session.commit()
-    return redirect(url_for('index' if date == get_today() else 'view_day', date=date))
+    return redirect(url_for('index', date=date))
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():

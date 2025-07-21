@@ -39,7 +39,7 @@
   <ul style="list-style: none; padding: 0;">
     {% for date, total in daily_totals %}
       <li>
-        <a href="{{ url_for('view_day', date=date) }}">{{ date|datetimeformat("%A, %B %d") }}</a> - {{ total }} cal
+        <a href="{{ url_for('index', date=date) }}">{{ date|datetimeformat("%A, %B %d") }}</a> - {{ total }} cal
       </li>
     {% endfor %}
   </ul>

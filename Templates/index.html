@@ -4,7 +4,18 @@
 
 {% block content %}
 <div style="width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-  <h3 style="margin-bottom: 5px;">{{ formatted_today }}</h3>
+  <div style="display:flex; align-items:center; gap:10px; margin-bottom:5px;">
+    <a href="{{ url_for('index', date=prev_date) }}">&lt;</a>
+    <h3 style="margin:0;">{{ formatted_today }}</h3>
+    {% if not is_today %}
+      <a href="{{ url_for('index', date=next_date) }}">&gt;</a>
+    {% else %}
+      <span style="width:12px;"></span>
+    {% endif %}
+  </div>
+  {% if not is_today %}
+    <a href="{{ url_for('index') }}" style="margin-top:8px; display:block;">Back to Today</a>
+  {% endif %}
   <h4 style="margin-top: 0; margin-bottom: 16px;">Welcome to your personal calorie tracker! What did you eat today?</h4>
 
   <div style="max-width: 800px; width: 100%; margin: 0 auto 20px auto;">
@@ -61,6 +72,7 @@
 
       <!-- Input + Send button (styled together) -->
       <form method="post" style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
+        <input type="hidden" name="date" value="{{ today }}">
         <div style="display: flex; align-items: stretch;">
           <textarea name="user_input" rows="2" placeholder="Describe your meal or ask a follow-up..." style="
             flex: 1;
@@ -90,6 +102,7 @@
       <div style="margin-top: 20px;">
         <h4 style="text-align: center;">Foods Detected:</h4>
         <form method="post" action="{{ url_for('add') }}" style="text-align: center;">
+          <input type="hidden" name="date" value="{{ today }}">
           <ul style="list-style-type: none; padding-left: 0;">
             {% for food in parsed_foods %}
               {% set idx = loop.index0 %}
@@ -109,7 +122,7 @@
   </div>
 
   <!-- Daily Entries -->
-  <h3 style="margin-top: 32px;">Today's Entries:</h3>
+  <h3 style="margin-top: 32px;">Entries for {{ formatted_today }}:</h3>
   <div style="display: flex; justify-content: center;">
     <ul style="list-style: none; padding: 0; text-align: left;">
       {% for entry in entries %}

@@ -78,9 +78,9 @@ def normalize_calories(value):
     return 0.0
 
 @app.template_filter('format_entry')
-def format_entry(quantity, food):
+def format_entry(quantity, food_name):
     q = str(quantity).lower().strip()
-    f = food.lower().strip()
+    f = food_name.lower().strip()
     if q in f:
         return f
     skip_of_units = {"slice", "slices", "medium", "small", "large", "cup", "cups", "piece", "pieces"}

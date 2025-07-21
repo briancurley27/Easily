@@ -77,6 +77,47 @@
       color: var(--primary);
     }
 
+    .menu-toggle {
+      display: none;
+      font-size: 24px;
+      background: none;
+      border: none;
+      color: var(--primary);
+      cursor: pointer;
+    }
+
+    @media (max-width: 600px) {
+      nav {
+        display: none;
+        position: absolute;
+        right: 10px;
+        top: 50px;
+        background: var(--accent);
+        padding: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-radius: 6px;
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      nav.open {
+        display: flex;
+      }
+
+      nav a {
+        margin: 5px 0;
+      }
+
+      nav .user-info {
+        margin-left: 0;
+        margin-right: 5px;
+      }
+
+      .menu-toggle {
+        display: block;
+      }
+    }
+
     main {
       max-width: 800px;
       margin: 100px auto 20px auto;
@@ -148,6 +189,7 @@
     <div class="brand">
       <a href="{{ url_for('index') }}">Easily</a>
     </div>
+    <button class="menu-toggle" aria-label="Menu">&#9776;</button>
     <nav>
       <a href="{{ url_for('index') }}">Home</a>
       <a href="{{ url_for('history') }}">History</a>
@@ -173,5 +215,12 @@
     {% endif %}
     {% endwith %}
   </main>
+  <script>
+    const menuToggle = document.querySelector('.menu-toggle');
+    const nav = document.querySelector('header.navbar nav');
+    menuToggle.addEventListener('click', () => {
+      nav.classList.toggle('open');
+    });
+  </script>
 </body>
 </html>

@@ -108,7 +108,7 @@
               {% set idx = loop.index0 %}
               <li style="margin-bottom: 10px;">
                 <input type="checkbox" name="selected" value="{{ idx }}" checked>
-                {{ food.quantity|format_entry(food.food) }} – {{ food.calories }} cal
+                {{ food['quantity']|format_entry(food['food']) }} – {{ food['calories'] }} cal
                 <input type="hidden" name="food_{{ idx }}" value="{{ food.food }}">
                 <input type="hidden" name="quantity_{{ idx }}" value="{{ food.quantity }}">
                 <input type="hidden" name="calories_{{ idx }}" value="{{ food.calories }}">

@@ -3,6 +3,7 @@ from flask_login import LoginManager, login_user, login_required, logout_user, c
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_session import Session
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import sqlite3, os, re, uuid, json
 from openai import OpenAI
 
@@ -49,6 +50,14 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 
 # ---------------- HELPERS ---------------- #
 def get_today():
+    """Return today's date as YYYY-MM-DD using configured timezone."""
+    tz_name = os.environ.get("TIMEZONE")
+    if tz_name:
+        try:
+            tz = ZoneInfo(tz_name)
+            return datetime.now(tz).strftime('%Y-%m-%d')
+        except Exception:
+            pass
     return datetime.now().strftime('%Y-%m-%d')
 
 def normalize_calories(value):

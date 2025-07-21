@@ -35,34 +35,40 @@
         flex-direction: column;
         gap: 8px;
       ">
-        {% for msg in messages %}
-          {% if msg.role == 'user' %}
-            <div style="align-self: flex-end; background: var(--primary); color: white; padding: 10px 12px; border-radius: 10px; max-width: 80%;">
-              {{ msg.content }}
-            </div>
-          {% elif msg.role == 'assistant' %}
-            {% set content = msg.content %}
-            {% set stripped = content
-              |replace("```json", "")
-              |replace("```", "")
-              |replace("Here’s the JSON list:", "")
-              |replace("Here's the JSON list:", "") %}
+        
+      {% for msg in messages %}
+        {% if msg.role == 'user' %}
+          <div style="align-self: flex-end; background: var(--primary); color: white; padding: 10px 12px; border-radius: 10px; max-width: 80%;">
+            {{ msg.content }}
+          </div>
+        {% elif msg.role == 'assistant' %}
+          {% set content = msg.content %}
+          {% set stripped = content
+            |replace("```json", "")
+            |replace("```", "")
+            |replace("Here’s the JSON list:", "")
+            |replace("Here's the JSON list:", "") %}
 
-            {% if '[' in stripped and ']' in stripped %}
-              {% set start = stripped.find('[') %}
-              {% set end = stripped.rfind(']') + 1 %}
-              {% set before = stripped[:start].strip() %}
-              {% set after = stripped[end:].strip() %}
-              <div style="align-self: flex-start; background: white; padding: 10px 12px; border-radius: 10px; max-width: 80%; border: 1px solid #ddd;">
-                <div style="white-space: pre-wrap;">{{ before }}{% if after %}<br><br>{{ after }}{% endif %}</div>
+          {% if '[' in stripped and ']' in stripped %}
+            {% set start = stripped.find('[') %}
+            {% set end = stripped.rfind(']') + 1 %}
+            {% set before = stripped[:start].strip() %}
+            {% set json_block = stripped[start:end].strip() %}
+            {% set after = stripped[end:].strip() %}
+            <div style="align-self: flex-start; background: white; padding: 10px 12px; border-radius: 10px; max-width: 80%; border: 1px solid #ddd;">
+              <div style="white-space: pre-wrap;">
+                {{ before }}
+                {% if after %}<br><br>{{ after }}{% endif %}
+                <!-- {{ json_block | e }} -->
               </div>
-            {% else %}
-              <div style="align-self: flex-start; background: white; padding: 10px 12px; border-radius: 10px; max-width: 80%; border: 1px solid #ddd;">
-                <div style="white-space: pre-wrap;">{{ stripped }}</div>
-              </div>
-            {% endif %}
+            </div>
+          {% else %}
+            <div style="align-self: flex-start; background: white; padding: 10px 12px; border-radius: 10px; max-width: 80%; border: 1px solid #ddd;">
+              <div style="white-space: pre-wrap;">{{ stripped }}</div>
+            </div>
           {% endif %}
-        {% endfor %}
+        {% endif %}
+      {% endfor %}
       </div>
 
       <!-- Thinking animation -->

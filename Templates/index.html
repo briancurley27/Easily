@@ -42,12 +42,10 @@
             {{ msg.content }}
           </div>
         {% elif msg.role == 'assistant' %}
-          {% set content = msg.content %}
+          {% set content = msg.content|strip_json_mentions %}
           {% set stripped = content
             |replace("```json", "")
-            |replace("```", "")
-            |replace("Here’s the JSON list:", "")
-            |replace("Here's the JSON list:", "") %}
+            |replace("```", "") %}
 
           {% if '[' in stripped and ']' in stripped %}
             {% set start = stripped.find('[') %}

@@ -106,6 +106,15 @@ def datetimeformat(value, format='%A, %B %d'):
         return datetime.strptime(value, '%Y-%m-%d').strftime(format)
     except Exception:
         return value
+    
+@app.template_filter('strip_json_mentions')
+def strip_json_mentions(text):
+    """Remove any lines that reference JSON from a chat message."""
+    lines = []
+    for line in text.splitlines():
+        if 'json' not in line.lower():
+            lines.append(line)
+    return '\n'.join(lines)
 
 # ---------------- ROUTES ---------------- #
 @app.route('/', methods=['GET', 'POST'])
@@ -136,10 +145,10 @@ def index():
                 "role": "system",
                 "content": (
                     "You are a helpful calorie tracking assistant. When the user describes a meal, "
-                    "estimate the calories. Return the estimate as a breakdown in plain English, "
-                    "and if appropriate, provide a JSON list with food name, quantity, and calories. "
-                    "Include zero-calorie foods like water or lettuce if mentioned."
-                    "Return calories as a single numeric value—no ranges or textual estimates—in the JSON list."
+                    "estimate the calories and respond with a short explanation in plain English. "
+                    "Also include a JSON list with food name, quantity, and calories—including zero-calorie items—" 
+                    "but do not mention the JSON list or reference it directly. "
+                    "Return calories as a single numeric value without ranges."
                 )
             }
         ]

@@ -3,13 +3,23 @@
 <head>
   <title>{% block title %}Easily{% endblock %}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Apple Touch Icon (with cache-busting) -->
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}?v=3">
+
+  <!-- Favicon (with cache-busting) -->
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon.png') }}?v=3">
+
+  <!-- Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Outfit:wght@600&display=swap" rel="stylesheet">
+
+  <!-- Global Styles -->
   <style>
     :root {
-      --primary: #5a00c4;  /* correct graph purple */
+      --primary: #5a00c4;  /* sexy purple, matches graph */
       --accent: #ede3fc;   /* navbar background */
     }
-
+  
     body {
       font-family: 'Poppins', sans-serif;
       background-color: white;

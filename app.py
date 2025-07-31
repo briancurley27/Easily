@@ -79,14 +79,25 @@ def normalize_calories(value):
 
 @app.template_filter('format_entry')
 def format_entry(quantity, food_name):
-    q = str(quantity).lower().strip()
+    """Return a nicely formatted quantity + food name string."""
+    # If quantity is None or empty, just return the food name
+    q = str(quantity or "").lower().strip()
     f = food_name.lower().strip()
+    if not q:
+        return f
+
+    # Avoid duplicating the quantity if it already appears in the name
     if q in f:
         return f
-    skip_of_units = {"slice", "slices", "medium", "small", "large", "cup", "cups", "piece", "pieces"}
-    first_word = q.split()[0]
+
+    skip_of_units = {
+        "slice", "slices", "medium", "small", "large", "cup", "cups", "piece", "pieces"
+    }
+    # Protect against IndexError when quantity is a blank string
+    first_word = q.split()[0] if q.split() else ""
     if first_word in skip_of_units:
         return f"{q} {f}"
+
     return f"{q} of {f}"
 
 @app.template_filter('datetimeformat')

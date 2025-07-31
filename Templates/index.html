@@ -165,6 +165,7 @@
   const thinking = document.getElementById("thinking");
   const dots = document.getElementById("dots");
   const chatWindow = document.getElementById("chat-window");
+  const textarea = form ? form.querySelector('textarea[name="user_input"]') : null;
 
   if (form && thinking) {
     form.addEventListener("submit", () => {
@@ -183,6 +184,19 @@
       });
       observer.observe(chatWindow, { childList: true, subtree: true });
     });
+
+    if (textarea) {
+      textarea.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          if (typeof form.requestSubmit === "function") {
+            form.requestSubmit();
+          } else {
+            form.submit();
+          }
+        }
+      });
+    }
   }
 </script>
 {% endblock %}

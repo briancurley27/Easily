@@ -231,6 +231,18 @@
     menuToggle.addEventListener('click', () => {
       nav.classList.toggle('open');
     });
+
+    // Set timezone cookie on first visit and reload so server uses it
+    (function() {
+      const hasTz = document.cookie.split(';').some(c => c.trim().startsWith('timezone='));
+      if (!hasTz) {
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        document.cookie = `timezone=${tz}; path=/; max-age=31536000`;
+        if (!window.location.search.includes('date=')) {
+          window.location.reload();
+        }
+      }
+    })();
   </script>
 </body>
 </html>

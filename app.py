@@ -50,8 +50,8 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 
 # ---------------- HELPERS ---------------- #
 def get_today():
-    """Return today's date as YYYY-MM-DD using configured timezone."""
-    tz_name = os.environ.get("TIMEZONE")
+    """Return today's date as YYYY-MM-DD using client or configured timezone."""
+    tz_name = request.cookies.get("timezone") or os.environ.get("TIMEZONE")
     if tz_name:
         try:
             tz = ZoneInfo(tz_name)

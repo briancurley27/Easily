@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 import sqlite3, os, re, uuid, json
 from openai import OpenAI
+from sqlalchemy.pool import NullPool
 
 # Only load .env if not on Render
 if os.environ.get("RENDER") != "true":
@@ -21,14 +22,9 @@ app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY', 'your-secret-key')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SESSION_TYPE'] = 'filesystem'
-
-# ✅ Add this: SQLAlchemy engine options
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    "pool_size": 5,
-    "max_overflow": 0,
-    "pool_pre_ping": True,
-    "pool_recycle": 1800,  # 30 min
-    "connect_args": {"connect_timeout": 5},
+    "poolclass": NullPool,
+    "connect_args": {"connect_timeout": 5}
 }
 
 # Flask-Session fix

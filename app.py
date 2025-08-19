@@ -21,9 +21,17 @@ app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY', 'your-secret-key')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SESSION_TYPE'] = 'filesystem'
-# Flask-Session 0.4 expects the deprecated `session_cookie_name` attribute which
-# was removed in Flask 3. Without setting it manually, session initialization
-# fails on newer Flask versions. Provide it here for backward compatibility.
+
+# ✅ Add this: SQLAlchemy engine options
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    "pool_size": 5,
+    "max_overflow": 0,
+    "pool_pre_ping": True,
+    "pool_recycle": 1800,  # 30 min
+    "connect_args": {"connect_timeout": 5},
+}
+
+# Flask-Session fix
 app.session_cookie_name = app.config.get('SESSION_COOKIE_NAME', 'session')
 Session(app)
 
@@ -297,6 +305,4 @@ def logout():
 
 # ---------------- RUN ---------------- #
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
     app.run(debug=True)
